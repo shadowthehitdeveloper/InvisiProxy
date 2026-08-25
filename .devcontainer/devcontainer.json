@@ -1,8 +1,9 @@
 {
   "name": "InvisiProxy LTS",
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:0-20",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:0-26",
   "features": {
-    "node": "20"
+    "node": "26"
   },
+  "forwardPorts": [8080],
   "postCreateCommand": "corepack enable && corepack prepare pnpm@latest --activate && pnpm install"
 }
