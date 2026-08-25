@@ -44,6 +44,19 @@ const scramjetUtilsPath = modPath(
 // This constant is copied over from /src/server.mjs.
 const shutdown = fileURLToPath(new URL('./src/.shutdown', import.meta.url));
 
+const waitForServer = async (timeoutMs = 10000) => {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      await fetch(serverUrl);
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+  throw new Error(`Server did not start within ${timeoutMs}ms.`);
+};
+
 // Run each command line argument passed after node run-command.mjs.
 // Commands are defined in the switch case statement below.
 commands: for (let i = 2; i < process.argv.length; i++)
@@ -79,6 +92,7 @@ commands: for (let i = 2; i < process.argv.length; i++)
         server.unref();
         server.disconnect();
       }
+      await waitForServer();
       break;
 
     // Stop the server. Make a temporary file that the server will check for if told

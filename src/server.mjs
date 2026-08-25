@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import { createServer } from 'node:http';
-import { Mrrowisp } from "mrrowisp";
+import { server as wispServer } from '@mercuryworkshop/wisp-js/server';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
 import {
@@ -21,88 +21,6 @@ import { existsSync, unlinkSync } from 'node:fs';
  */
 console.log(serverUrl);
 
-// Wisp Configuration: Refer to the documentation at https://www.npmjs.com/package/mrrowisp
-
-const wisp = new Mrrowisp({
-  port: 6001,
-  logLevel: 'none',
-
-  allowTCP: true,
-  allowUDP: false,
-  enableV2: true,
-  enableTwisp: false,
-  websocketPermessageDeflate: false,
-
-  allowDirectIP: true,
-  allowPrivateIPs: false,
-  allowLoopbackIPs: true,
-
-  parseRealIP: true,
-  trustedHeaders: ['CF-Connecting-IP', 'X-Forwarded-For'],
-
-  whitelist: {
-    ports: [
-      80,
-      443,
-      9050,
-      7000,
-      7001
-    ],
-  },
-
-  connectionsLimitPerIP: 64,
-  connectionWindowSeconds: 10,
-  tcpBufferSize: 458752,
-  bufferRemainingLength: 458752,
-  tcpNoDelay: true,
-  maxMessageSize: 28 * 1024 * 1024,
-
-  passwordAuth: false,
-
-  floodProtection: {
-    enabled: true,
-    maxConnectsPerSourceIPPerSecond: 60,
-    maxConnectsPerDestPerSecond: 150,
-    maxConnectsPerDestPerMinute: 3000,
-    maxInFlightSyns: 768,
-    maxConcurrentStreamsPerConnection: 1024,
-    maxConcurrentConnections: 6144, 
-    synFloodSignature: {
-      enabled: true,
-      windowMs: 3000,
-      minSamples: 40,
-      failedHandshakeRatio: 0.75,
-    },
-    wsCloseAfterViolations: 16,
-    logBlockedDials: true,
-  },
-
-  reputation: {
-    enabled: true,
-    storePath: './data/mrrowisp-reputation.json',
-    saveIntervalSeconds: 30,
-    scoreDecayPerHour: 2,
-    evictAfterDays: 7,
-    thresholds: { warn: 25, throttle: 55, strict: 85 },
-    weights: {
-      privateEgress: 20,
-      synSignature: 25,
-      twispNoAuth: 40,
-      burstRate: 5,
-      successfulStream: -2,
-      requestKnownBadDest: 3,
-    },
-    destinationWeights: {
-      privateEgress: 25,
-      synSignature: 30,
-      distinctSourcesEscalation: 1,
-    },
-  },
-});
-
-// Modify for parallel instances
-wisp.start(1);
-
 // The server will check for the existence of this file when a shutdown is requested.
 // The shutdown script in run-command.js will temporarily produce this file.
 const shutdown = fileURLToPath(new URL('./.shutdown', import.meta.url));
@@ -115,7 +33,7 @@ const serverFactory = (handler) => {
     })
     .on('upgrade', (req, socket, head) => {
       if (req.url.endsWith(getAltPrefix('wisp', serverUrl.pathname)))
-        wisp.route(req, socket, head);
+        wispServer.routeRequest(req, socket, head);
     });
 };
 
@@ -300,7 +218,6 @@ app.get(serverUrl.pathname + ':path', (req, reply) => {
   // is present, gracefully shut the server down.
   if (reqPath === 'test-shutdown' && existsSync(shutdown)) {
     console.log('InvisiProxy is shutting down.');
-    wisp.stop();
     app.close();
     unlinkSync(shutdown);
     process.exitCode = 0;
