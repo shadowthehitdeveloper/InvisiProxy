@@ -1,6 +1,14 @@
 {
   "name": "InvisiProxy LTS",
-  "image": "node:22-alpine",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
   "forwardPorts": [8080],
-  "postCreateCommand": "corepack enable && corepack prepare pnpm@latest --activate && pnpm install"
+  "portsAttributes": {
+    "8080": {
+      "label": "InvisiProxy",
+      "onAutoForward": "openBrowser",
+      "visibility": "public"
+    }
+  },
+  "postCreateCommand": "corepack enable && corepack prepare pnpm@latest --activate && pnpm install",
+  "postStartCommand": "pnpm start"
 }

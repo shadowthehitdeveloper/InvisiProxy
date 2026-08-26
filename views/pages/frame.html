@@ -107,7 +107,11 @@
         windowFrame.contentWindow.location.reload();
       });
 
-      let statusObject = { isLoading: true, timesErrored: 0 };
+      let statusObject = {
+        isLoading: true,
+        timesErrored: 0,
+        refreshScheduled: false,
+      };
 
       const loaderTimeout = (timeout) => {
         statusObject.isLoading = true;
@@ -119,13 +123,19 @@
 
       const errorRefresh = () => {
         const shouldRefresh =
-          statusObject.timesErrored <= 5 &&
+          statusObject.timesErrored < 5 &&
           windowFrame.contentWindow.document.head.querySelector(
             "meta[itemprop='http-status'][content='404']"
           );
         if (shouldRefresh) {
-          statusObject.timesErrored++;
-          windowFrame.contentWindow.location.reload();
+          if (!statusObject.refreshScheduled) {
+            statusObject.timesErrored++;
+            statusObject.refreshScheduled = true;
+            setTimeout(() => {
+              statusObject.refreshScheduled = false;
+              windowFrame.contentWindow.location.reload();
+            }, 750);
+          }
         } else statusObject.timesErrored = 0;
         return shouldRefresh;
       };
